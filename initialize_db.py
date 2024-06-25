@@ -134,10 +134,28 @@ def initialize_db():
     ''')
 
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_type_upcharges (
+            ticket_type_id INTEGER NOT NULL,
+            upcharge_id INTEGER NOT NULL,
+            FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY (upcharge_id) REFERENCES upcharges(id)
+        )
+    ''')
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS textures (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             image TEXT
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_type_textures (
+            ticket_type_id INTEGER NOT NULL,
+            texture_id INTEGER NOT NULL,
+            FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY (texture_id) REFERENCES textures(id)
         )
     ''')
 
@@ -165,4 +183,3 @@ def initialize_db():
 
 if __name__ == "__main__":
     initialize_db()
-

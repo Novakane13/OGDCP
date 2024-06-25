@@ -143,7 +143,7 @@ class TicketTypeWindow(tk.Toplevel):
             text = item[1]
             cb = ttk.Checkbutton(frame, text=text, variable=var)
             cb.pack(anchor='w')
-            checkboxes.append((item[0], var))
+            checkboxes.append((item[0], var))  # Store id and variable
 
         return checkboxes
 
@@ -263,6 +263,11 @@ class TicketTypeWindow(tk.Toplevel):
         if self.ticket_type_id:
             cursor.execute("UPDATE ticket_types SET name = ? WHERE id = ?", (ticket_type_name, self.ticket_type_id))
             cursor.execute("DELETE FROM ticket_type_garments WHERE ticket_type_id = ?", (self.ticket_type_id,))
+            cursor.execute("DELETE FROM ticket_type_colors WHERE ticket_type_id = ?", (self.ticket_type_id,))
+            cursor.execute("DELETE FROM ticket_type_patterns WHERE ticket_type_id = ?", (self.ticket_type_id,))
+            cursor.execute("DELETE FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?", (self.ticket_type_id,))
+            cursor.execute("DELETE FROM ticket_type_upcharges WHERE ticket_type_id = ?", (self.ticket_type_id,))
+            cursor.execute("DELETE FROM ticket_type_textures WHERE ticket_type_id = ?", (self.ticket_type_id,))
         else:
             cursor.execute("INSERT INTO ticket_types (name) VALUES (?)", (ticket_type_name,))
             self.ticket_type_id = cursor.lastrowid
@@ -271,14 +276,43 @@ class TicketTypeWindow(tk.Toplevel):
         for garment in selected_garments:
             cursor.execute("SELECT id FROM garments WHERE name = ?", (garment,))
             garment_id = cursor.fetchone()[0]
-
             cursor.execute("INSERT INTO ticket_type_garments (ticket_type_id, garment_id) VALUES (?, ?)", (self.ticket_type_id, garment_id))
+
+        for color_id, var in self.colors:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_colors (ticket_type_id, color_id) VALUES (?, ?)", (self.ticket_type_id, color_id))
+
+        for pattern_id, var in self.patterns:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_patterns (ticket_type_id, pattern_id) VALUES (?, ?)", (self.ticket_type_id, pattern_id))
+
+        for coupon_discount_id, var in self.coupons_discounts:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_coupons_discounts (ticket_type_id, coupon_discount_id) VALUES (?, ?)", (self.ticket_type_id, coupon_discount_id))
+
+        for upcharge_id, var in self.upcharges:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_upcharges (ticket_type_id, upcharge_id) VALUES (?, ?)", (self.ticket_type_id, upcharge_id))
+
+        for texture_id, var in self.textures:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_textures (ticket_type_id, texture_id) VALUES (?, ?)", (self.ticket_type_id, texture_id))
 
         self.db_conn.commit()
         messagebox.showinfo("Success", "Ticket type saved successfully.")
         self.ticket_type_entry.delete(0, tk.END)
         self.selected_garments_listbox.delete(0, tk.END)
+
         self.refresh_ticket_types_list()
+
+    def add_ticket_type_buttons_to_customer_windows(self, ticket_type_name):
+        for window in self.customer_windows:
+            button = ttk.Button(window, text=ticket_type_name, command=lambda name=ticket_type_name: self.create_ticket(name))
+            button.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X)
+
+    def create_ticket(self, ticket_type_name):
+        # Function to create a ticket for the given ticket type
+        print(f"Creating ticket for {ticket_type_name}")
 
     def edit_ticket_type(self, event=None):
         selection = self.ticket_types_listbox.curselection()
@@ -287,35 +321,69 @@ class TicketTypeWindow(tk.Toplevel):
             return
 
         index = selection[0]
-        ticket_type_id = self.ticket_types[index][0]
+        ticket_type_id, ticket_type_name = self.ticket_types[index]
 
         # Retrieve the ticket type details from the database
         cursor = self.db_conn.cursor()
-        cursor.execute('SELECT * FROM ticket_types WHERE id = ?', (ticket_type_id,))
+        cursor.execute('SELECT name FROM ticket_types WHERE id = ?', (ticket_type_id,))
         ticket_type = cursor.fetchone()
 
         self.ticket_type_entry.delete(0, tk.END)
-        self.ticket_type_entry.insert(0, ticket_type[1])
+        self.ticket_type_entry.insert(0, ticket_type[0])
 
-        cursor.execute('SELECT garment_id FROM ticket_type_garments WHERE ticket_type_id = ?', (ticket_type_id,))
-        garment_ids = cursor.fetchall()
+        self.clear_selections()
+        
+        cursor.execute("SELECT garment_id FROM ticket_type_garments WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_garments_ids = [row[0] for row in cursor.fetchall()]
+        for garment_id in selected_garments_ids:
+            cursor.execute("SELECT name FROM garments WHERE id = ?", (garment_id,))
+            garment_name = cursor.fetchone()[0]
+            self.selected_garments_listbox.insert(tk.END, garment_name)
+        
+        cursor.execute("SELECT color_id FROM ticket_type_colors WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_color_ids = [row[0] for row in cursor.fetchall()]
+        for color_id, var in self.colors:
+            if color_id in selected_color_ids:
+                var.set(True)
 
-        self.set_selected_garments(garment_ids)
-        self.set_selected_checkboxes(self.colors, ticket_type[2].split(','))
-        self.set_selected_checkboxes(self.patterns, ticket_type[3].split(','))
-        self.set_selected_checkboxes(self.coupons_discounts, ticket_type[4].split(','))
-        self.set_selected_checkboxes(self.upcharges, ticket_type[5].split(','))
-        self.set_selected_checkboxes(self.textures, ticket_type[6].split(','))
+        cursor.execute("SELECT pattern_id FROM ticket_type_patterns WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_pattern_ids = [row[0] for row in cursor.fetchall()]
+        for pattern_id, var in self.patterns:
+            if pattern_id in selected_pattern_ids:
+                var.set(True)
+
+        cursor.execute("SELECT coupon_discount_id FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_coupon_discount_ids = [row[0] for row in cursor.fetchall()]
+        for coupon_discount_id, var in self.coupons_discounts:
+            if coupon_discount_id in selected_coupon_discount_ids:
+                var.set(True)
+
+        cursor.execute("SELECT upcharge_id FROM ticket_type_upcharges WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_upcharge_ids = [row[0] for row in cursor.fetchall()]
+        for upcharge_id, var in self.upcharges:
+            if upcharge_id in selected_upcharge_ids:
+                var.set(True)
+
+        cursor.execute("SELECT texture_id FROM ticket_type_textures WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_texture_ids = [row[0] for row in cursor.fetchall()]
+        for texture_id, var in self.textures:
+            if texture_id in selected_texture_ids:
+                var.set(True)
 
         self.save_button.config(text="Update Ticket Type", command=lambda: self.update_ticket_type(ticket_type_id))
 
-    def set_selected_garments(self, garment_ids):
+    def clear_selections(self):
         self.selected_garments_listbox.delete(0, tk.END)
-        for garment_id in garment_ids:
-            cursor = self.db_conn.cursor()
-            cursor.execute('SELECT name FROM garments WHERE id = ?', (garment_id,))
-            garment_name = cursor.fetchone()[0]
-            self.selected_garments_listbox.insert(tk.END, garment_name)
+        for color_id, var in self.colors:
+            var.set(False)
+        for pattern_id, var in self.patterns:
+            var.set(False)
+        for coupon_discount_id, var in self.coupons_discounts:
+            var.set(False)
+        for upcharge_id, var in self.upcharges:
+            var.set(False)
+        for texture_id, var in self.textures:
+            var.set(False)
 
     def set_selected_checkboxes(self, checkboxes, selected_items):
         for var, item in checkboxes:
@@ -327,31 +395,46 @@ class TicketTypeWindow(tk.Toplevel):
             messagebox.showerror("Error", "Please enter the ticket type name.")
             return
 
-        selected_garments = [self.selected_garments_listbox.get(index) for index in range(self.selected_garments_listbox.size())]
-        selected_colors = [color for color, var in self.colors if var.get()]
-        selected_patterns = [pattern for pattern, var in self.patterns if var.get()]
-        selected_coupons_discounts = [item for item, var in self.coupons_discounts if var.get()]
-        selected_upcharges = [item for item, var in self.upcharges if var.get()]
-        selected_textures = [item for item, var in self.textures if var.get()]
-
         cursor = self.db_conn.cursor()
-        cursor.execute('''
-            UPDATE ticket_types
-            SET name = ?, colors = ?, patterns = ?, coupons_discounts = ?, upcharges = ?, textures = ?
-            WHERE id = ?
-        ''', (ticket_type_name, ','.join(selected_colors), ','.join(selected_patterns), ','.join(selected_coupons_discounts), ','.join(selected_upcharges), ','.join(selected_textures), ticket_type_id))
+        cursor.execute("UPDATE ticket_types SET name = ? WHERE id = ?", (ticket_type_name, ticket_type_id))
 
         cursor.execute("DELETE FROM ticket_type_garments WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_garments = self.selected_garments_listbox.get(0, tk.END)
         for garment in selected_garments:
             cursor.execute("SELECT id FROM garments WHERE name = ?", (garment,))
             garment_id = cursor.fetchone()[0]
             cursor.execute("INSERT INTO ticket_type_garments (ticket_type_id, garment_id) VALUES (?, ?)", (ticket_type_id, garment_id))
 
+        cursor.execute("DELETE FROM ticket_type_colors WHERE ticket_type_id = ?", (ticket_type_id,))
+        for color_id, var in self.colors:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_colors (ticket_type_id, color_id) VALUES (?, ?)", (ticket_type_id, color_id))
+
+        cursor.execute("DELETE FROM ticket_type_patterns WHERE ticket_type_id = ?", (ticket_type_id,))
+        for pattern_id, var in self.patterns:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_patterns (ticket_type_id, pattern_id) VALUES (?, ?)", (ticket_type_id, pattern_id))
+
+        cursor.execute("DELETE FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?", (ticket_type_id,))
+        for coupon_discount_id, var in self.coupons_discounts:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_coupons_discounts (ticket_type_id, coupon_discount_id) VALUES (?, ?)", (ticket_type_id, coupon_discount_id))
+
+        cursor.execute("DELETE FROM ticket_type_upcharges WHERE ticket_type_id = ?", (ticket_type_id,))
+        for upcharge_id, var in self.upcharges:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_upcharges (ticket_type_id, upcharge_id) VALUES (?, ?)", (ticket_type_id, upcharge_id))
+
+        cursor.execute("DELETE FROM ticket_type_textures WHERE ticket_type_id = ?", (ticket_type_id,))
+        for texture_id, var in self.textures:
+            if var.get():
+                cursor.execute("INSERT INTO ticket_type_textures (ticket_type_id, texture_id) VALUES (?, ?)", (ticket_type_id, texture_id))
+
         self.db_conn.commit()
 
         messagebox.showinfo("Success", "Ticket Type updated successfully!")
         self.save_button.config(text="Save Ticket Type", command=self.save_ticket_type)
-        self.refresh_lists()
+        self.refresh_ticket_types_list()
 
     def delete_ticket_type(self):
         selection = self.ticket_types_listbox.curselection()
@@ -360,13 +443,19 @@ class TicketTypeWindow(tk.Toplevel):
             return
 
         index = selection[0]
-        ticket_type_id = self.ticket_types[index][0]
+        ticket_type_id, _ = self.ticket_types[index]
 
         cursor = self.db_conn.cursor()
         cursor.execute('DELETE FROM ticket_types WHERE id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_garments WHERE ticket_type_id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_colors WHERE ticket_type_id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_patterns WHERE ticket_type_id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_upcharges WHERE ticket_type_id = ?', (ticket_type_id,))
+        cursor.execute('DELETE FROM ticket_type_textures WHERE ticket_type_id = ?', (ticket_type_id,))
         self.db_conn.commit()
 
-        self.refresh_lists()
+        self.refresh_ticket_types_list()
 
     def edit_selected_item(self):
         if self.ticket_types_listbox.curselection():

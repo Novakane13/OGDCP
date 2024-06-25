@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 import sqlite3
 import requests
 from ticket_type import TicketTypeWindow
+from detailed_ticket import DetailedTicketCreationWindow
 
 class CustomerAccountWindow(tk.Toplevel):
     def __init__(self, parent, db_conn, customer_id=None):
@@ -147,7 +148,7 @@ class CustomerAccountWindow(tk.Toplevel):
                 row += 1
 
     def open_ticket_creation_window(self, ticket_type_id):
-        TicketCreationWindow(self, self.db_conn, self.customer_id, ticket_type_id)
+        DetailedTicketCreationWindow(self, self.db_conn, self.customer_id, ticket_type_id)
 
     def load_ticket_types(self):
         cursor = self.db_conn.cursor()
@@ -158,137 +159,18 @@ class CustomerAccountWindow(tk.Toplevel):
             button = ttk.Button(self.ticket_type_buttons_frame, text=ticket_type[1], command=lambda tt=ticket_type: self.create_ticket(tt))
             button.pack(side=tk.LEFT, padx=5, pady=5)
 
+    def update_ticket_list(self):
+        self.tickets_tree.delete(*self.tickets_tree.get_children())
+        cursor = self.db_conn.cursor()
+        cursor.execute('''
+            SELECT ticket_number, date, status, total FROM tickets WHERE customer_id = ?
+        ''', (self.customer_id,))
+        tickets = cursor.fetchall()
+        for ticket in tickets:
+            self.tickets_tree.insert('', 'end', values=ticket)
+
     def create_ticket(self, ticket_type):
-        TicketCreationWindow(self, self.db_conn, self.customer_id, ticket_type[0])
-
-class TicketCreationWindow(tk.Toplevel):
-    def __init__(self, parent, db_conn, customer_id, ticket_type_id):
-        super().__init__(parent)
-        self.db_conn = db_conn
-        self.customer_id = customer_id
-        self.ticket_type_id = ticket_type_id
-        self.title("Create Ticket")
-        self.geometry("800x600")
-        self.create_widgets()
-        self.load_ticket_type_details()
-
-    def create_widgets(self):
-        # Ticket Window
-        self.ticket_window_frame = tk.Frame(self, relief=tk.SUNKEN, borderwidth=1)
-        self.ticket_window_frame.place(x=20, y=20, width=350, height=500)
-
-        self.ticket_window_label = tk.Label(self.ticket_window_frame, text="Ticket Window", font=("Arial", 12))
-        self.ticket_window_label.pack(anchor=tk.N, pady=10)
-
-        self.ticket_window = tk.Listbox(self.ticket_window_frame)
-        self.ticket_window.pack(expand=True, fill=tk.BOTH)
-
-        # Garment Selection Frame
-        self.garment_frame = tk.Frame(self, relief=tk.SUNKEN, borderwidth=1)
-        self.garment_frame.place(x=380, y=20, width=400, height=500)
-
-        self.garment_label = tk.Label(self.garment_frame, text="Select Garment", font=("Arial", 12))
-        self.garment_label.pack(anchor=tk.N, pady=10)
-
-        self.garment_list = tk.Listbox(self.garment_frame)
-        self.garment_list.pack(expand=True, fill=tk.BOTH)
-
-        # Complete Ticket Button
-        self.complete_ticket_button = tk.Button(self, text="Complete Ticket", command=self.complete_ticket)
-        self.complete_ticket_button.pack(side=tk.BOTTOM, pady=20)
-
-        # Total Price
-        self.total_price_label = tk.Label(self, text="Total: $0.00", font=("Arial", 12))
-        self.total_price_label.pack(side=tk.BOTTOM)
-
-    def load_ticket_type_details(self):
-        cursor = self.db_conn.cursor()
-        cursor.execute("SELECT garment_id FROM ticket_type_garments WHERE ticket_type_id = ?", (self.ticket_type_id,))
-        garment_ids = [row[0] for row in cursor.fetchall()]
-
-        if garment_ids:
-            for garment_id in garment_ids:
-                cursor.execute("SELECT name, image FROM garments WHERE id = ?", (garment_id,))
-                garment = cursor.fetchone()
-                if garment:
-                    self.garment_list.insert(tk.END, garment[0])
-
-        self.garment_list.bind('<Double-1>', self.show_variants)
-
-    def show_variants(self, event):
-        selected_index = self.garment_list.curselection()[0]
-        selected_garment = self.garment_list.get(selected_index)
-        
-        cursor = self.db_conn.cursor()
-        cursor.execute("SELECT id FROM garments WHERE name = ?", (selected_garment,))
-        garment_id = cursor.fetchone()[0]
-        cursor.execute("SELECT id, name, price FROM variations WHERE garment_id = ?", (garment_id,))
-        variants = cursor.fetchall()
-
-        variant_window = tk.Toplevel(self)
-        variant_window.title("Select Variant")
-        variant_window.geometry("300x200")
-
-        variant_listbox = tk.Listbox(variant_window)
-        variant_listbox.pack(expand=True, fill=tk.BOTH)
-
-        for variant in variants:
-            variant_listbox.insert(tk.END, f"{variant[1]} - ${variant[2]}")
-
-        def select_variant():
-            selected_variant_index = variant_listbox.curselection()[0]
-            selected_variant = variants[selected_variant_index]
-            self.add_garment_to_ticket(selected_garment, selected_variant)
-            variant_window.destroy()
-
-        select_button = tk.Button(variant_window, text="Select", command=select_variant)
-        select_button.pack(pady=10)
-
-    def add_garment_to_ticket(self, garment_name, variant):
-        self.ticket_window.insert(tk.END, f"{garment_name} - {variant[1]} - ${variant[2]}")
-        self.update_total_price()
-
-    def update_total_price(self):
-        total = 0.0
-        for i in range(self.ticket_window.size()):
-            item = self.ticket_window.get(i)
-            price = float(item.split('- $')[1])
-            total += price
-        self.total_price_label.config(text=f"Total: ${total:.2f}")
-
-    def complete_ticket(self):
-        ticket_items = []
-        for i in range(self.ticket_window.size()):
-            item = self.ticket_window.get(i)
-            garment_name, variant_name, price = item.split(' - ')
-            price = float(price.split('$')[1])
-            ticket_items.append((garment_name, variant_name, price))
-
-        cursor = self.db_conn.cursor()
-
-        cursor.execute("SELECT MAX(ticket_number) FROM tickets")
-        max_ticket_number = cursor.fetchone()[0]
-        if max_ticket_number is None:
-            max_ticket_number = 0
-        new_ticket_number = max_ticket_number + 1
-
-        cursor.execute("INSERT INTO tickets (customer_id, ticket_number, date, total, status) VALUES (?, ?, DATE('now'), ?, 'open')",
-                       (self.customer_id, new_ticket_number, sum(item[2] for item in ticket_items)))
-        ticket_id = cursor.lastrowid
-
-        for garment_name, variant_name, price in ticket_items:
-            cursor.execute("SELECT id FROM garments WHERE name = ?", (garment_name,))
-            garment_id = cursor.fetchone()[0]
-            cursor.execute("SELECT id FROM variations WHERE name = ?", (variant_name,))
-            variant_id = cursor.fetchone()[0]
-            cursor.execute("INSERT INTO ticket_items (ticket_id, garment_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)",
-                           (ticket_id, garment_id, variant_id, 1, price))  # Assuming quantity as 1 for simplicity
-
-        self.db_conn.commit()
-
-        messagebox.showinfo("Ticket Created", f"Ticket created successfully! Ticket number: {new_ticket_number}")
-        self.destroy()
-
+        DetailedTicketCreationWindow(self, self.db_conn, self.customer_id, ticket_type[0])
 
 class QuickTicketWindow(tk.Toplevel):
     def __init__(self, parent, db_conn, customer_id):
