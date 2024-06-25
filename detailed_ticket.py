@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
 import sqlite3
+import uuid
 
 class DetailedTicketCreationWindow(tk.Toplevel):
     def __init__(self, parent, db_conn, customer_id, ticket_type_id):
@@ -66,57 +67,38 @@ class DetailedTicketCreationWindow(tk.Toplevel):
         cursor = self.db_conn.cursor()
 
         # Load Garments
-        cursor.execute('''
-            SELECT g.name FROM garments g
-            JOIN ticket_type_garments t ON g.id = t.garment_id
-            WHERE t.ticket_type_id = ?
-        ''', (self.ticket_type_id,))
-        garments = cursor.fetchall()
-        for garment in garments:
-            self.garment_listbox.insert(tk.END, garment[0])
+        cursor.execute("SELECT id, name FROM garments WHERE id IN (SELECT garment_id FROM ticket_type_garments WHERE ticket_type_id = ?)", (self.ticket_type_id,))
+        self.garments = cursor.fetchall()
+        for garment in self.garments:
+            self.garment_listbox.insert(tk.END, garment[1])
 
         # Load Colors
-        cursor.execute('''
-            SELECT c.name FROM colors c
-            JOIN ticket_type_colors t ON c.id = t.color_id
-            WHERE t.ticket_type_id = ?
-        ''', (self.ticket_type_id,))
-        colors = cursor.fetchall()
-        for color in colors:
-            self.color_listbox.insert(tk.END, color[0])
+        cursor.execute("SELECT id, name FROM colors WHERE id IN (SELECT color_id FROM ticket_type_colors WHERE ticket_type_id = ?)", (self.ticket_type_id,))
+        self.colors = cursor.fetchall()
+        for color in self.colors:
+            self.color_listbox.insert(tk.END, color[1])
 
         # Load Patterns
-        cursor.execute('''
-            SELECT pattern_name FROM ticket_type_patterns
-            WHERE ticket_type_id = ?
-        ''', (self.ticket_type_id,))
-        patterns = cursor.fetchall()
-        for pattern in patterns:
-            self.pattern_listbox.insert(tk.END, pattern[0])
+        cursor.execute("SELECT id, name FROM patterns WHERE id IN (SELECT pattern_id FROM ticket_type_patterns WHERE ticket_type_id = ?)", (self.ticket_type_id,))
+        self.patterns = cursor.fetchall()
+        for pattern in self.patterns:
+            self.pattern_listbox.insert(tk.END, pattern[1])
 
         # Load Textures
-        cursor.execute('''
-            SELECT t.name FROM textures t
-            JOIN ticket_type_textures tt ON t.id = tt.texture_id
-            WHERE tt.ticket_type_id = ?
-        ''', (self.ticket_type_id,))
-        textures = cursor.fetchall()
-        for texture in textures:
-            self.texture_listbox.insert(tk.END, texture[0])
+        cursor.execute("SELECT id, name FROM textures WHERE id IN (SELECT texture_id FROM ticket_type_textures WHERE ticket_type_id = ?)", (self.ticket_type_id,))
+        self.textures = cursor.fetchall()
+        for texture in self.textures:
+            self.texture_listbox.insert(tk.END, texture[1])
 
-      # Load Upcharges
-        cursor.execute('''
-            SELECT u.name, u.price FROM upcharges u
-            JOIN ticket_type_upcharges tu ON u.id = tu.upcharge_id
-            WHERE tu.ticket_type_id = ?
-        ''', (self.ticket_type_id,))
-        upcharges = cursor.fetchall()
-        for upcharge in upcharges:
+        # Load Upcharges
+        cursor.execute("SELECT id, name FROM upcharges WHERE id IN (SELECT upcharge_id FROM ticket_type_upcharges WHERE ticket_type_id = ?)", (self.ticket_type_id,))
+        self.upcharges = cursor.fetchall()
+        for upcharge in self.upcharges:
             var = tk.BooleanVar()
-            self.upcharge_vars[upcharge[0]] = var
-            cb = ttk.Checkbutton(self.upcharge_frame, text=f"{upcharge[0]} (${upcharge[1]:.2f})", variable=var)
-            cb.grid(column=0, row=len(self.upcharge_vars), padx=10, pady=5, sticky='w')
-    
+            chk = ttk.Checkbutton(self.upcharge_frame, text=upcharge[1], variable=var)
+            chk.pack(anchor='w')
+            self.upcharge_vars[upcharge[1]] = var
+
     def save_ticket(self):
         cursor = self.db_conn.cursor()
 
@@ -127,7 +109,7 @@ class DetailedTicketCreationWindow(tk.Toplevel):
         ''', (
             self.customer_id,
             self.drop_date.get(),
-            self.generate_ticket_number(),  # You need to implement this method
+            self.generate_ticket_number(),
             "",  # Assuming rack info will be added later
             0,   # Assuming pieces count will be added later
             0.0,  # Assuming total price will be added later
@@ -162,11 +144,14 @@ class DetailedTicketCreationWindow(tk.Toplevel):
         self.parent.update_ticket_list()
         self.destroy()
 
-def generate_ticket_number(self):
-    # Implement a method to generate a unique ticket number
-    import uuid
-    return str(uuid.uuid4())[:8]
-
+    def generate_ticket_number(self):
+        cursor = self.db_conn.cursor()
+        cursor.execute("SELECT MAX(ticket_number) FROM tickets")
+        max_ticket_number = cursor.fetchone()[0]
+        if max_ticket_number is None:
+            return 1
+        else:
+            return max_ticket_number + 1
 
 if __name__ == "__main__":
     def create_db_connection():
