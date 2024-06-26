@@ -178,6 +178,39 @@ def initialize_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_type_colors (
+            id INTEGER PRIMARY KEY,
+            ticket_type_id INTEGER,
+            color_id INTEGER,
+            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY(color_id) REFERENCES colors(id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_type_patterns (
+            id INTEGER PRIMARY KEY,
+            ticket_type_id INTEGER,
+            pattern_id INTEGER,
+            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY(pattern_id) REFERENCES patterns(id)
+        )
+    ''')
+
+     # Create ticket_type_coupons_discounts table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_type_coupons_discounts (
+            id INTEGER PRIMARY KEY,
+            ticket_type_id INTEGER,
+            coupons_discounts_id INTEGER,
+            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY(coupons_discounts_id) REFERENCES coupons_discounts(id)
+        
+        )
+    ''')
+
+
     conn.commit()
     conn.close()
 

@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from PIL import Image, ImageTk
-from initialize_db import create_db_connection
+import sqlite3
 
 class CouponsAndDiscountsCreationWindow(tk.Toplevel):
     def __init__(self, parent, db_conn):
@@ -18,36 +18,29 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
         self.name_entry = ttk.Entry(self)
         self.name_entry.grid(column=1, row=0, padx=10, pady=5, sticky='w')
 
-        # Type Selection
-        ttk.Label(self, text="Type:").grid(column=0, row=1, padx=10, pady=5, sticky='w')
-        self.type_var = tk.StringVar()
-        self.type_combobox = ttk.Combobox(self, textvariable=self.type_var)
-        self.type_combobox['values'] = ('Coupon', 'Discount')
-        self.type_combobox.grid(column=1, row=1, padx=10, pady=5, sticky='w')
-
         # Image Selection Button
         self.image_button = ttk.Button(self, text="Select Image (Optional)", command=self.select_image)
-        self.image_button.grid(column=0, row=2, padx=10, pady=5, sticky='w')
+        self.image_button.grid(column=0, row=1, padx=10, pady=5, sticky='w')
 
         # Image Display
         self.image_display = tk.Canvas(self, width=100, height=100, bg="white", bd=2, relief="sunken")
-        self.image_display.grid(column=1, row=2, padx=10, pady=5, sticky='w')
+        self.image_display.grid(column=1, row=1, padx=10, pady=5, sticky='w')
 
         # Save Button
         self.save_button = ttk.Button(self, text="Save Item", command=self.save_item)
-        self.save_button.grid(column=0, row=3, columnspan=2, padx=10, pady=10, sticky='ew')
+        self.save_button.grid(column=0, row=2, columnspan=2, padx=10, pady=10, sticky='ew')
 
         # Item List Display
         self.item_listbox = tk.Listbox(self, height=10)
-        self.item_listbox.grid(column=0, row=4, columnspan=2, padx=10, pady=10, sticky='nsew')
+        self.item_listbox.grid(column=0, row=3, columnspan=2, padx=10, pady=10, sticky='nsew')
         self.item_listbox.bind("<Double-1>", self.edit_item)
 
         # Edit and Delete Buttons
         self.edit_button = ttk.Button(self, text="Edit Selected", command=self.edit_item)
-        self.edit_button.grid(column=0, row=5, padx=10, pady=5, sticky='w')
+        self.edit_button.grid(column=0, row=4, padx=10, pady=5, sticky='w')
 
         self.delete_button = ttk.Button(self, text="Delete Selected", command=self.delete_item)
-        self.delete_button.grid(column=1, row=5, padx=10, pady=5, sticky='w')
+        self.delete_button.grid(column=1, row=4, padx=10, pady=5, sticky='w')
 
     def select_image(self):
         file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.gif")])
@@ -60,25 +53,24 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
 
     def save_item(self):
         name = self.name_entry.get()
-        item_type = self.type_var.get().lower()
         image_path = getattr(self, 'selected_image', None)
 
-        if not name or not item_type:
-            messagebox.showerror("Error", "Please enter a name and select a type.")
+        if not name:
+            messagebox.showerror("Error", "Please enter a name.")
             return
 
         cursor = self.db_conn.cursor()
 
         # Check for duplicate names
-        cursor.execute('SELECT COUNT(*) FROM coupons_discounts WHERE name = ? AND type = ?', (name, item_type))
+        cursor.execute('SELECT COUNT(*) FROM coupons_discounts WHERE name = ?', (name,))
         if cursor.fetchone()[0] > 0:
             messagebox.showerror("Error", "An item with this name already exists.")
             return
 
         cursor.execute('''
-            INSERT INTO coupons_discounts (name, type, image)
-            VALUES (?, ?, ?)
-        ''', (name, item_type, image_path))
+            INSERT INTO coupons_discounts (name, image)
+            VALUES (?, ?)
+        ''', (name, image_path))
 
         self.db_conn.commit()
 
@@ -89,11 +81,11 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
         self.item_listbox.delete(0, tk.END)
 
         cursor = self.db_conn.cursor()
-        cursor.execute("SELECT id, name, type, image FROM coupons_discounts")
+        cursor.execute("SELECT id, name, image FROM coupons_discounts")
         self.items = cursor.fetchall()
 
         for item in self.items:
-            self.item_listbox.insert(tk.END, f"{item[1]} ({item[2]})")
+            self.item_listbox.insert(tk.END, f"{item[1]}")
 
     def edit_item(self, event=None):
         selection = self.item_listbox.curselection()
@@ -102,11 +94,10 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
             return
 
         index = selection[0]
-        item_id, item_name, item_type, item_image = self.items[index]
+        item_id, item_name, item_image = self.items[index]
 
         self.name_entry.delete(0, tk.END)
         self.name_entry.insert(0, item_name)
-        self.type_var.set(item_type.capitalize())
         self.selected_image = item_image
 
         if item_image:
@@ -121,26 +112,25 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
 
     def update_item(self, item_id):
         name = self.name_entry.get()
-        item_type = self.type_var.get().lower()
         image_path = getattr(self, 'selected_image', None)
 
-        if not name or not item_type:
-            messagebox.showerror("Error", "Please enter a name and select a type.")
+        if not name:
+            messagebox.showerror("Error", "Please enter a name.")
             return
 
         cursor = self.db_conn.cursor()
 
         # Check for duplicate names
-        cursor.execute('SELECT COUNT(*) FROM coupons_discounts WHERE name = ? AND type = ? AND id != ?', (name, item_type, item_id))
+        cursor.execute('SELECT COUNT(*) FROM coupons_discounts WHERE name = ? AND id != ?', (name, item_id))
         if cursor.fetchone()[0] > 0:
             messagebox.showerror("Error", "An item with this name already exists.")
             return
 
         cursor.execute('''
             UPDATE coupons_discounts
-            SET name = ?, type = ?, image = ?
+            SET name = ?, image = ?
             WHERE id = ?
-        ''', (name, item_type, image_path, item_id))
+        ''', (name, image_path, item_id))
 
         self.db_conn.commit()
 
@@ -155,7 +145,7 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
             return
 
         index = selection[0]
-        item_id, _, _, _ = self.items[index]
+        item_id, _, _ = self.items[index]
 
         cursor = self.db_conn.cursor()
         cursor.execute('DELETE FROM coupons_discounts WHERE id = ?', (item_id,))
@@ -165,15 +155,18 @@ class CouponsAndDiscountsCreationWindow(tk.Toplevel):
 
     def clear_entries(self):
         self.name_entry.delete(0, tk.END)
-        self.type_var.set('')
         self.image_display.delete("all")
         self.selected_image = None
 
+def create_db_connection():
+    conn = sqlite3.connect('pos_system.db')
+    return conn
+
 if __name__ == "__main__":
-    # Create or connect to your database using the initialize_db function
     db_conn = create_db_connection()
 
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    coupons_discounts_app = CouponsAndDiscountsCreationWindow(root, db_conn)
-    coupons_discounts_app.mainloop()
+    app = CouponsAndDiscountsCreationWindow(root, db_conn)
+    app.mainloop()
+    db_conn.close()

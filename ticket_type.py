@@ -9,7 +9,7 @@ class TicketTypeWindow(tk.Toplevel):
         self.db_conn = db_conn
         self.ticket_type_id = ticket_type_id
         self.title("Ticket Type Creation/Edit")
-        self.geometry("1200x800")  # Set a default size for the window
+        self.geometry("2000x1200")  # Set a default size for the window
 
         self.create_widgets()
         self.refresh_lists()
@@ -352,10 +352,10 @@ class TicketTypeWindow(tk.Toplevel):
             if pattern_id in selected_pattern_ids:
                 var.set(True)
 
-        cursor.execute("SELECT coupon_discount_id FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?", (ticket_type_id,))
-        selected_coupon_discount_ids = [row[0] for row in cursor.fetchall()]
-        for coupon_discount_id, var in self.coupons_discounts:
-            if coupon_discount_id in selected_coupon_discount_ids:
+        cursor.execute("SELECT coupons_discounts_id FROM ticket_type_coupons_discounts WHERE ticket_type_id = ?", (ticket_type_id,))
+        selected_coupons_discounts_ids = [row[0] for row in cursor.fetchall()]
+        for coupons_discounts_id, var in self.coupons_discounts:
+            if coupons_discounts_id in selected_coupons_discounts_ids:
                 var.set(True)
 
         cursor.execute("SELECT upcharge_id FROM ticket_type_upcharges WHERE ticket_type_id = ?", (ticket_type_id,))
