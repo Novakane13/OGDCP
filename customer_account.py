@@ -5,6 +5,7 @@ import sqlite3
 import requests
 from ticket_type import TicketTypeWindow
 from detailed_ticket import DetailedTicketCreationWindow
+from quick_ticket import QuickTicketWindow
 
 class CustomerAccountWindow(tk.Toplevel):
     def __init__(self, parent, db_conn, customer_id=None):
@@ -19,6 +20,8 @@ class CustomerAccountWindow(tk.Toplevel):
             self.load_customer_data()
 
     def create_widgets(self):
+        
+
         # Next Customer Button
         self.next_customer_button = ttk.Button(self, text="Next Customer", command=self.next_customer)
         self.next_customer_button.grid(column=0, row=0, padx=10, pady=10, sticky='w')
@@ -88,6 +91,15 @@ class CustomerAccountWindow(tk.Toplevel):
 
         # Create ticket type buttons
         self.create_ticket_type_buttons()
+
+        self.control_buttons_frame = ttk.Frame(self)
+        self.control_buttons_frame.grid(column=0, row=1, padx=10, pady=10, sticky='nw')
+
+        ttk.Button(self.control_buttons_frame, text="Create Quick Ticket", command=self.create_quick_ticket).pack(pady=5, fill='x')
+        ttk.Button(self.control_buttons_frame, text="Pay", command=self.pay).pack(pady=5, fill='x')
+        ttk.Button(self.control_buttons_frame, text="Pickup+Pay", command=self.pickup_and_pay).pack(pady=5, fill='x')
+        ttk.Button(self.control_buttons_frame, text="Register", command=self.register).pack
+
 
     def next_customer(self):
         # Placeholder for next customer functionality
@@ -172,47 +184,6 @@ class CustomerAccountWindow(tk.Toplevel):
     def create_ticket(self, ticket_type):
         DetailedTicketCreationWindow(self, self.db_conn, self.customer_id, ticket_type[0])
 
-class QuickTicketWindow(tk.Toplevel):
-    def __init__(self, parent, db_conn, customer_id):
-        super().__init__(parent)
-        self.db_conn = db_conn
-        self.customer_id = customer_id
-        self.title("Create Quick Ticket")
-        self.geometry("400x500")
-        self.create_widgets()
-        self.load_ticket_types()
-
-    def create_widgets(self):
-        tk.Label(self, text="Quick Ticket", font=("Arial", 16)).pack(pady=10)
-
-        # Due Date
-        tk.Label(self, text="Due Date").pack()
-        self.due_date = DateEntry(self, width=20, background='darkblue', foreground='white', borderwidth=2)
-        self.due_date.pack(pady=5)
-
-        # Ticket Type, Pieces, and Notes
-        self.ticket_frame = tk.Frame(self)
-        self.ticket_frame.pack(pady=10)
-
-        for i in range(3):
-            tk.Label(self.ticket_frame, text="Ticket Type").grid(row=i, column=0, padx=5, pady=5)
-            tk.Label(self.ticket_frame, text="# of Items").grid(row=i, column=1, padx=5, pady=5)
-            tk.Label(self.ticket_frame, text="Notes for this ticket type").grid(row=i, column=2, padx=5, pady=5)
-            setattr(self, f"ticket_type_{i+1}", ttk.Combobox(self.ticket_frame, width=20))
-            getattr(self, f"ticket_type_{i+1}").grid(row=i, column=0, padx=5, pady=5)
-            setattr(self, f"pieces_{i+1}", tk.Spinbox(self.ticket_frame, from_=1, to=100, width=5))
-            getattr(self, f"pieces_{i+1}").grid(row=i, column=1, padx=5, pady=5)
-            setattr(self, f"notes_{i+1}", tk.Entry(self.ticket_frame, width=20))
-            getattr(self, f"notes_{i+1}").grid(row=i, column=2, padx=5, pady=5)
-
-        # Overall Notes
-        tk.Label(self, text="Notes for Quick Ticket").pack()
-        self.overall_notes = tk.Entry(self, width=40)
-        self.overall_notes.pack(pady=5)
-
-        # Submit Button
-        tk.Button(self, text="Create Quick Ticket", command=self.submit_quick_ticket).pack(pady=20)
-
     def load_ticket_types(self):
         try:
             response = requests.get('http://127.0.0.1:5000/ticket_types')
@@ -225,6 +196,9 @@ class QuickTicketWindow(tk.Toplevel):
                 messagebox.showerror("Error", "Failed to load ticket types.")
         except requests.exceptions.RequestException as e:
             messagebox.showerror("Error", f"Failed to connect to the server: {e}")
+
+    def create_quick_ticket(self):
+        QuickTicketWindow(self, self.db_conn)
 
     def submit_quick_ticket(self):
         quick_ticket = {

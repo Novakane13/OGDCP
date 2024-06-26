@@ -29,9 +29,9 @@ class QuickTicketWindow(tk.Toplevel):
             ticket_type_label = ttk.Label(item_frame, text=f"Ticket Type {i+1}")
             ticket_type_label.grid(column=0, row=0, padx=5, pady=5, sticky='w')
 
-            self.ticket_type_combobox = ttk.Combobox(item_frame, state="readonly")
-            self.ticket_type_combobox['values'] = self.get_ticket_types()
-            self.ticket_type_combobox.grid(column=1, row=0, padx=5, pady=5, sticky='w')
+            ticket_type_combobox = ttk.Combobox(item_frame, state="readonly")
+            ticket_type_combobox['values'] = self.get_ticket_types()
+            ticket_type_combobox.grid(column=1, row=0, padx=5, pady=5, sticky='w')
 
             pieces_entry = ttk.Entry(item_frame)
             pieces_entry.grid(column=2, row=0, padx=5, pady=5, sticky='w')
@@ -39,7 +39,7 @@ class QuickTicketWindow(tk.Toplevel):
             notes_entry = ttk.Entry(item_frame)
             notes_entry.grid(column=3, row=0, padx=5, pady=5, sticky='w')
 
-            self.item_entries.append((self.ticket_type_combobox, pieces_entry, notes_entry))
+            self.item_entries.append((ticket_type_combobox, pieces_entry, notes_entry))
 
         # Overall Notes
         ttk.Label(self, text="Overall Notes").grid(column=0, row=2, padx=10, pady=5, sticky='w')
