@@ -115,11 +115,11 @@ def initialize_db():
         )
     ''')
 
+    # Create coupons_discounts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS coupons_discounts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            type TEXT NOT NULL,
             image TEXT
         )
     ''')
@@ -198,15 +198,14 @@ def initialize_db():
         )
     ''')
 
-     # Create ticket_type_coupons_discounts table
+    # Create ticket_type_coupons_discounts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_coupons_discounts (
             id INTEGER PRIMARY KEY,
             ticket_type_id INTEGER,
-            coupons_discounts_id INTEGER,
+            coupon_discount_id INTEGER,
             FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
-            FOREIGN KEY(coupons_discounts_id) REFERENCES coupons_discounts(id)
-        
+            FOREIGN KEY(coupon_discount_id) REFERENCES coupons_discounts(id)
         )
     ''')
 
