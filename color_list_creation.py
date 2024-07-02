@@ -65,3 +65,4 @@ class ColorListCreationWindow(tk.Toplevel):
 
         for color in colors:
             self.color_listbox.insert(tk.END, f"{color[0]}: {color[1]}")
+
