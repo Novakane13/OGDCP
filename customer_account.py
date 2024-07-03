@@ -20,8 +20,6 @@ class CustomerAccountWindow(tk.Toplevel):
             self.load_customer_data()
 
     def create_widgets(self):
-        
-
         # Next Customer Button
         self.next_customer_button = ttk.Button(self, text="Next Customer", command=self.next_customer)
         self.next_customer_button.grid(column=0, row=0, padx=10, pady=10, sticky='w')
@@ -100,19 +98,21 @@ class CustomerAccountWindow(tk.Toplevel):
         ttk.Button(self.control_buttons_frame, text="Pickup+Pay", command=self.pickup_and_pay).pack(pady=5, fill='x')
         ttk.Button(self.control_buttons_frame, text="Register", command=self.register).pack
 
-
     def next_customer(self):
-        # Placeholder for next customer functionality
-        messagebox.showinfo("Next Customer", "Next customer functionality not yet implemented.")
+        from customer_search import CustomerSearchWindow  # Import here to avoid circular import
+        self.destroy()
+        CustomerSearchWindow(self.master, self.db_conn)
 
     def handle_button_click(self, button):
         # Placeholder for handling button clicks
         messagebox.showinfo(button, f"{button} functionality not yet implemented.")
 
     def load_customer_data(self):
-        cursor = self.db_conn.cursor()
+        conn = sqlite3.connect('pos_system.db')
+        cursor = conn.cursor()
         cursor.execute("SELECT last_name, first_name, phone, notes FROM customers WHERE id = ?", (self.customer_id,))
         customer = cursor.fetchone()
+        conn.close()
 
         if customer:
             self.last_name_entry.insert(0, customer[0])
@@ -126,7 +126,8 @@ class CustomerAccountWindow(tk.Toplevel):
         phone = self.phone_entry.get()
         notes = self.notes_text.get("1.0", tk.END).strip()
 
-        cursor = self.db_conn.cursor()
+        conn = sqlite3.connect('pos_system.db')
+        cursor = conn.cursor()
 
         if self.customer_id:
             cursor.execute('''
@@ -141,7 +142,8 @@ class CustomerAccountWindow(tk.Toplevel):
             ''', (last_name, first_name, phone, notes))
             self.customer_id = cursor.lastrowid
 
-        self.db_conn.commit()
+        conn.commit()
+        conn.close()
 
     def create_ticket_type_buttons(self):
         cursor = self.db_conn.cursor()

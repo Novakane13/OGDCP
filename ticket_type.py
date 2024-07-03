@@ -66,7 +66,7 @@ class TicketTypeWindow(tk.Toplevel):
         self.ticket_types_frame.grid(column=0, row=9, columnspan=8, padx=10, pady=10, sticky="nsew")
         self.ticket_types_listbox = tk.Listbox(self.ticket_types_frame)
         self.ticket_types_listbox.pack(fill=tk.BOTH, expand=True)
-        self.ticket_types_listbox.bind("<Double-1>", self.edit_ticket_type)
+        self.ticket_types_listbox.bind("<Double-1>", self.edit_selected_item)
         self.edit_button = ttk.Button(self.ticket_types_frame, text="Edit Selected", command=self.edit_selected_item)
         self.edit_button.pack(side=tk.LEFT, padx=5, pady=5)
         self.delete_button = ttk.Button(self.ticket_types_frame, text="Delete Selected", command=self.delete_selected_item)

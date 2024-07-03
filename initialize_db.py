@@ -115,10 +115,9 @@ def initialize_db():
         )
     ''')
 
-    # Create coupons_discounts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS coupons_discounts (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             image TEXT
         )
@@ -135,6 +134,7 @@ def initialize_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_upcharges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             ticket_type_id INTEGER NOT NULL,
             upcharge_id INTEGER NOT NULL,
             FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
@@ -152,6 +152,7 @@ def initialize_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_textures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             ticket_type_id INTEGER NOT NULL,
             texture_id INTEGER NOT NULL,
             FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
@@ -180,35 +181,33 @@ def initialize_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_colors (
-            id INTEGER PRIMARY KEY,
-            ticket_type_id INTEGER,
-            color_id INTEGER,
-            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
-            FOREIGN KEY(color_id) REFERENCES colors(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_type_id INTEGER NOT NULL,
+            color_id INTEGER NOT NULL,
+            FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY (color_id) REFERENCES colors(id)
         )
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_patterns (
-            id INTEGER PRIMARY KEY,
-            ticket_type_id INTEGER,
-            pattern_id INTEGER,
-            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
-            FOREIGN KEY(pattern_id) REFERENCES patterns(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_type_id INTEGER NOT NULL,
+            pattern_id INTEGER NOT NULL,
+            FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY (pattern_id) REFERENCES patterns(id)
         )
     ''')
 
-    # Create ticket_type_coupons_discounts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ticket_type_coupons_discounts (
-            id INTEGER PRIMARY KEY,
-            ticket_type_id INTEGER,
-            coupon_discount_id INTEGER,
-            FOREIGN KEY(ticket_type_id) REFERENCES ticket_types(id),
-            FOREIGN KEY(coupon_discount_id) REFERENCES coupons_discounts(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_type_id INTEGER NOT NULL,
+            coupon_discount_id INTEGER NOT NULL,
+            FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
+            FOREIGN KEY (coupon_discount_id) REFERENCES coupons_discounts(id)
         )
     ''')
-
 
     conn.commit()
     conn.close()

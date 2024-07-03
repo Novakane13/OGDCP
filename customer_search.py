@@ -2,14 +2,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import sqlite3
 from customer_account import CustomerAccountWindow
-from initialize_db import create_db_connection
 
 class CustomerSearchWindow(tk.Toplevel):
-    def __init__(self, parent, db_conn):
-        super().__init__(parent)
-        self.db_conn = db_conn
+    def __init__(self):
+        super().__init__()
         self.title("Search Customer")
-        self.geometry("600x400")  # Set a default size for the window
+        self.geometry("800x600")  # Set a default size for the window
         self.create_widgets()
     
     def create_widgets(self):
@@ -64,9 +62,11 @@ class CustomerSearchWindow(tk.Toplevel):
             query += " AND phone LIKE ?"
             params.append(f"%{phone}%")
 
-        cursor = self.db_conn.cursor()
+        conn = sqlite3.connect('pos_system.db')
+        cursor = conn.cursor()
         cursor.execute(query, params)
         results = cursor.fetchall()
+        conn.close()
 
         self.result_list.delete(0, tk.END)
         for customer in results:
@@ -77,22 +77,21 @@ class CustomerSearchWindow(tk.Toplevel):
         customer_name, phone = selection.split(" - ")
         last_name, first_name = customer_name.split(" ", 1)
 
-        cursor = self.db_conn.cursor()
+        conn = sqlite3.connect('pos_system.db')
+        cursor = conn.cursor()
         cursor.execute("SELECT id FROM customers WHERE last_name = ? AND first_name = ? AND phone = ?", (last_name, first_name, phone))
         customer_id = cursor.fetchone()[0]
+        conn.close()
 
         self.destroy()
-        CustomerAccountWindow(self.master, self.db_conn, customer_id)
+        CustomerAccountWindow(customer_id)
 
     def create_new_customer(self):
         self.destroy()
-        CustomerAccountWindow(self.master, self.db_conn)
+        CustomerAccountWindow()
 
 if __name__ == "__main__":
-    # Create or connect to your database using the initialize_db function
-    db_conn = create_db_connection()
-
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    customer_search_app = CustomerSearchWindow(root, db_conn)
-    customer_search_app.mainloop()
+    app = CustomerSearchWindow()
+    app.mainloop()
