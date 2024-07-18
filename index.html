@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-align: center;
+        }
+        #button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #ff69b4;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #animation {
+            display: none;
+            margin-top: 20px;
+        }
+        #message {
+            display: none;
+            font-size: 36px;
+            margin-top: 20px;
+        }
+        #love {
+            display: none;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <button id="button" onclick="showAnimation()">Click Me!</button>
+    <div id="animation">
+        <img src="https://media.giphy.com/media/26AHONQ79FdWZhAI0/giphy.gif" alt="Fireworks Animation">
+    </div>
+    <div id="message">
+        Happy Birthday Raelynn!!!
+    </div>
+    <div id="love">
+        Love you -Uncle Kevin
+    </div>
+    <script>
+        function showAnimation() {
+            document.getElementById('button').style.display = 'none';
+            document.getElementById('animation').style.display = 'block';
+            document.getElementById('message').style
